@@ -10,7 +10,10 @@ const fuse = new Fuse(COMMODITY_NAMES, {
 });
 
 function normalize(str) {
-  return str.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, "")
+    .trim();
 }
 
 function normalizeAndTokenize(str) {
@@ -29,7 +32,7 @@ function getCommodityByTokens(queryTokens) {
     let intersection = 0;
     for (const t of qSet) {
       if (nSet.has(t)) intersection++;
-      else if ([...nSet].some(nt => nt.includes(t) || t.includes(nt))) intersection += 0.5;
+      else if ([...nSet].some((nt) => nt.includes(t) || t.includes(nt))) intersection += 0.5;
     }
     const union = new Set([...qSet, ...nSet]);
     const jaccard = intersection / union.size;

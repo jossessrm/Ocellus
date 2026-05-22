@@ -6,41 +6,15 @@ import { clearCache } from "../utils/cache.js";
  * Prints the help message for the Ocellus CLI.
  */
 export function printHelp() {
-  console.log(" Ocellus CLI — Commodity Market Search");
-  console.log(" Usage: ocellus> search <query>");
-  console.log("        npm run cli -- search <query>");
+  console.log(" Ocellus CLI — Natural Language Commodity Market Search");
   console.log("");
-  console.log(" Two query modes are automatically detected:");
+  console.log(' All searches must start with the "search" keyword:');
   console.log("");
-  console.log(" ── Strict Flag Mode ──");
-  console.log("   search [BUY|SELL|w2buy|w2sell] -c <commodity> -s <system> [flags...] [key=value...]");
+  console.log(" ── Search Syntax ──");
+  console.log("    Usage: search <natural language query>");
   console.log("");
-  console.log("   Market mode:          buy/w2buy  (where to buy),  sell/w2sell  (where to sell)");
-  console.log("   Required:");
-  console.log("    -c,   -C,        --commodity            name");
-  console.log("    -s,   -S,        --system               name");
-  console.log("   Optional flags:");
-  console.log("    -pad,            --padSize              S/M/L (default: L)");
-  console.log("    -d,   -maxD,     --maxSystemDistance    ly");
-  console.log("    -std, -stdist,   --StationDist          ls");
-  console.log("    -o,              --orderBy              price | supply | demand | distance | update");
-  console.log("    -age,            --maxPriceAge          hours");
-  console.log("    -q,   -Q,        --priceQuality         0-99|anarchy");
-  console.log("    -supply,         --minSupply            positive integer");
-  console.log("    -surface,        --surfaceStations      yes | yes_no_odyssey | no");
-  console.log("    -fc,             --fleetCarriers        yes | yes_updated | no");
-  console.log("    -sc,             --strongholdCarriers   yes | only_pledged | no");
-  console.log("    -pp,  -PP,       --PowerPlay            name");
-  console.log("    -pps, -PPS,      --PowerPlayState       state (repeatable)");
-  console.log("    -mf,             --minorFaction         name");
-  console.log("    -results,        --resultsPerPage       positive integer (1-100, default 20)");
-  console.log("    -page,           --pageNumber           positive integer");
-  console.log("");
-  console.log(" ── Natural Language Mode ──");
-  console.log("   search <sentence>  — parser extracts mode, commodity, system, filters from text");
-  console.log("");
-  console.log("   Patterns:");
-  console.log("     mode:    where to buy, where to sell, w2buy, w2sell, buying, selling");
+  console.log("   Recognized patterns:");
+  console.log("     mode:    where to buy, where to sell, w2buy, w2sell, buying, selling, buy, sell");
   console.log("     system:  near <name>, in system <name>, around <name>, at <name>");
   console.log("     pad:     small|medium|large pad,  pad s|m|l");
   console.log("     range:   within <N> ly,  max distance <N> ly");
@@ -61,13 +35,13 @@ export function printHelp() {
   console.log("   quit / exit           Exit the REPL");
   console.log("");
   console.log(" ── Examples ──");
-  console.log("   search buy -c Tritium -s Manhari -pad L -d 50 -o price");
-  console.log("   search sell -c Gold -s Sol -pad L -q anarchy -pps fortified -pps expansion");
-  console.log("   search w2buy -c Tritium -s Manhari -pad L");
-  console.log('   search where to buy tritium near manhari');
-  console.log('   search buy tritium near shinrarta use fc')
-  console.log('   search w2b gold near sol large pad within 50 ly');
-  console.log('   search where to sell painite near sol fleet carriers sort by price');
+  console.log("   search where to buy tritium near manhari");
+  console.log("   search buy tritium near manhari large pad within 50 ly");
+  console.log("   search sell gold near sol price anarchy");
+  console.log("   search w2buy tritium near manhari large pad");
+  console.log("   search buy water near Cupisii use fc");
+  console.log("   search w2b gold near Lhou Mans large pad within 50 ly");
+  console.log("   search where to sell painite near sol fleet carriers sort by price");
 }
 
 /**
@@ -82,8 +56,8 @@ export async function runCLIInteractive(searchCommodity) {
     prompt: "ocellus> ",
   });
 
-  console.log("Ocellus CLI — Interactive Commodity Search");
-  console.log("Type a command or 'help' for usage. 'quit' to exit.\n");
+  console.log("Ocellus CLI — Natural Language Commodity Market Search");
+  console.log("All searches start with 'search'. Type 'help' for usage. 'quit' to exit.\n");
   rl.prompt();
 
   let lastSearchArgs = null;
@@ -124,7 +98,8 @@ export async function runCLIInteractive(searchCommodity) {
       if (routed.action === "next") args.pageNumber = (args.pageNumber || 1) + 1;
       else if (routed.action === "prev") args.pageNumber = Math.max(1, (args.pageNumber || 1) - 1);
       else if (routed.action === "first") args.pageNumber = 1;
-      else if (routed.action === "last") args.pageNumber = 999; // placeholder; actual last computed by search
+      else if (routed.action === "last")
+        args.pageNumber = 999; // placeholder; actual last computed by search
       else if (routed.action === "page") args.pageNumber = routed.value;
       else if (routed.action === "pagesize") {
         args.resultsPerPage = routed.value;
@@ -136,20 +111,20 @@ export async function runCLIInteractive(searchCommodity) {
       rl.prompt();
       continue;
     }
+    let args;
     if (routed.command !== "search") {
-      console.log("Unknown command. Type 'help' for usage.");
+      console.log("Unknown command. Type 'help' for usage. All searches must start with 'search'.");
       rl.prompt();
       continue;
+    } else {
+      args = routed.args;
     }
-    const args = routed.args;
 
     const required = ["commodity", "system"];
     const missing = required.filter((k) => !args[k]);
     if (missing.length > 0) {
       console.log(`Missing required args: ${missing.join(", ")}`);
-      console.log("Usage: search <commodity> <system>");
-      console.log("  Flags: search -c <commodity> -s <system> [flags...]");
-      console.log("  Natural: search where to buy <commodity> near <system>");
+      console.log("Usage: <where to buy|where to sell> <commodity> near <system> [filters...]");
       rl.prompt();
       continue;
     }
@@ -170,8 +145,8 @@ export async function runCLIInteractive(searchCommodity) {
   }
 
   // --- CLEAN EXIT OVERHAUL FOR TERMINAL STABILITY ---
-  rl.close(); // Close the readline interface
-  process.stdin.pause(); // Force stop listening to standard input completely
+  rl.close();
+  process.stdin.pause();
 
   // Give the streams 50ms to flush buffers and release TTY control before exiting
   setTimeout(() => {

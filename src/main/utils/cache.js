@@ -1,18 +1,18 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import fs from "fs";
+import path from "path";
+import os from "os";
 
 let cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const CACHE_DIR = path.join(process.cwd(), 'node_modules', '.cache');
-const CACHE_FILE = path.join(CACHE_DIR, 'ocellus-cache.json');
+const CACHE_DIR = path.join(process.cwd(), "node_modules", ".cache");
+const CACHE_FILE = path.join(CACHE_DIR, "ocellus-cache.json");
 
 function getCacheFilePath() {
   try {
     if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
     return CACHE_FILE;
   } catch {
-    return path.join(os.tmpdir(), 'ocellus-cache.json');
+    return path.join(os.tmpdir(), "ocellus-cache.json");
   }
 }
 
@@ -20,7 +20,7 @@ function loadPersistentCache() {
   const filePath = getCacheFilePath();
   try {
     if (fs.existsSync(filePath)) {
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
       cache = new Map(data);
     }
   } catch {}
@@ -92,5 +92,7 @@ export function invalidateOldEntries() {
  */
 export function clearCache() {
   cache.clear();
-  try { fs.unlinkSync(getCacheFilePath()); } catch {}
+  try {
+    fs.unlinkSync(getCacheFilePath());
+  } catch {}
 }

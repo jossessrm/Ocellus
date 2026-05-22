@@ -271,9 +271,7 @@ export const COMMODITY_IDS = {
   "Wreckage Components": 10207,
 };
 
-const COMMODITY_INDEX = Object.fromEntries(
-  Object.entries(COMMODITY_IDS).map(([k, v]) => [k.toLowerCase(), { name: k, id: v }]),
-);
+const COMMODITY_INDEX = Object.fromEntries(Object.entries(COMMODITY_IDS).map(([k, v]) => [k.toLowerCase(), { name: k, id: v }]));
 
 const MODE = { buy: 1, sell: 2 };
 const ORDER_BY = { price: 1, supply: 2, demand: 2, distance: 3, update: 4 };
@@ -385,7 +383,7 @@ export function buildUrl(opts = {}) {
   p.set("pi4", SURFACE_STATIONS[surfaceStations] ?? 0);
   p.set("pi8", FLEET_CARRIERS[fleetCarriers] ?? 0);
   p.set("pi13", STRONGHOLD_CARRIERS[strongholdCarriers] ?? 0);
-  const validAge = [...PRICE_AGE_VALID].filter(a => a <= (maxPriceAge || 0)).pop() || 0;
+  const validAge = [...PRICE_AGE_VALID].filter((a) => a <= (maxPriceAge || 0)).pop() || 0;
   p.set("pi5", validAge);
   p.set("pi12", isValidPriceCond(priceCondition) ? priceCondition : 0);
   p.set("pi7", minSupply >= 0 ? minSupply : 0);

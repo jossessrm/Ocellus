@@ -4,25 +4,6 @@ import { matchCommodity } from "../utils/commodity-matcher.js";
  * Maps CLI flag names to their possible command-line argument variants.
  * @type {Object.<string, string[]>}
  */
-export const CLI_FLAGS = {
-  commodity: ["-c", "-C", "--commodity"],
-  system: ["-s", "-S", "--system"],
-  padSize: ["-pad", "--padSize"],
-  maxSystemDistance: ["-d", "-maxD", "--maxSystemDistance"],
-  maxStationDistance: ["-std", "-stdist", "--StationDist"],
-  orderBy: ["-o", "--orderBy"],
-  maxPriceAge: ["-age", "--maxPriceAge"],
-  priceCondition: ["-q", "-Q", "--priceQuality"],
-  minSupplyOrDemand: ["-supply", "--minSupply"],
-  surfaceStations: ["-surface", "--surfaceStations"],
-  fleetCarriers: ["-fc", "--fleetCarriers"],
-  strongholdCarriers: ["-sc", "--strongholdCarriers"],
-  power: ["-pp", "-PP", "--PowerPlay"],
-  powerplayState: ["-pps", "-PPS", "--PowerPlayState"],
-  minorFaction: ["-mf", "--minorFaction"],
-  resultsPerPage: ["-results", "--resultsPerPage", "-pagesize", "--pageSize", "-perpage", "--perPage"],
-  pageNumber: ["-page", "--pageNumber"],
-};
 
 /**
  * Casts a string value to its appropriate JavaScript type.
@@ -39,112 +20,16 @@ export function normalizeOrderBy(input) {
   return input;
 }
 
-export function castValue(val) {
-  if (val === "true") return true;
-  if (val === "false") return false;
-  if (/^\d+$/.test(val)) return parseInt(val, 10);
-  if (/^\d+\.\d+$/.test(val)) return parseFloat(val);
-  return val;
-}
-
 /**
  * Parses command-line arguments from process.argv into a structured object.
  * @returns {Object} The parsed arguments.
  */
-export function parseArgvArgs() {
-  const args = {};
-  let i = 2;
-  while (i < process.argv.length) {
-    let arg = process.argv[i];
-    if (arg === "--cli") {
-      i++;
-      continue;
-    }
-    if (!arg.startsWith("-")) {
-      const lc = arg.toLowerCase();
-      if (lc === "buy" || lc === "w2buy") {
-        args.mode = "where to buy";
-        i++;
-        continue;
-      }
-      if (lc === "sell" || lc === "w2sell") {
-        args.mode = "where to sell";
-        i++;
-        continue;
-      }
-    }
-    let matched = false;
-    for (const [key, flags] of Object.entries(CLI_FLAGS)) {
-      if (flags.includes(arg)) {
-        if (key === "powerplayState") {
-          if (!args[key]) args[key] = [];
-          args[key].push(process.argv[++i]);
-        } else {
-          args[key] = castValue(process.argv[++i]);
-        }
-        matched = true;
-        break;
-      }
-    }
-    if (!matched && arg.includes("=")) {
-      const eqIdx = arg.indexOf("=");
-      const key = arg.slice(0, eqIdx);
-      args[key] = castValue(arg.slice(eqIdx + 1));
-    }
-    i++;
-  }
-  if (args.mode === "buy") args.mode = "where to buy";
-  if (args.mode === "sell") args.mode = "where to sell";
-  if (args.orderBy) args.orderBy = normalizeOrderBy(args.orderBy);
-  return args;
-}
 
 /**
  * Parses an array of tokens into a structured arguments object.
  * @param {string[]} tokens - The tokens to parse.
  * @returns {Object} The parsed arguments.
  */
-export function parseArgs(tokens) {
-  const args = { mode: "where to buy", padSize: "L" };
-  let i = 0;
-  while (i < tokens.length) {
-    const token = tokens[i];
-    if (!token.startsWith("-")) {
-      const lc = token.toLowerCase();
-      if (lc === "buy" || lc === "w2buy") {
-        args.mode = "where to buy";
-        i++;
-        continue;
-      }
-      if (lc === "sell" || lc === "w2sell") {
-        args.mode = "where to sell";
-        i++;
-        continue;
-      }
-    }
-    let matched = false;
-    for (const [key, flags] of Object.entries(CLI_FLAGS)) {
-      if (flags.includes(token)) {
-        if (key === "powerplayState") {
-          if (!args[key]) args[key] = [];
-          args[key].push(tokens[++i]);
-        } else {
-          args[key] = castValue(tokens[++i]);
-        }
-        matched = true;
-        break;
-      }
-    }
-    if (!matched && token.includes("=")) {
-      const eqIdx = token.indexOf("=");
-      const key = token.slice(0, eqIdx);
-      args[key] = castValue(token.slice(eqIdx + 1));
-    }
-    i++;
-  }
-  if (args.orderBy) args.orderBy = normalizeOrderBy(args.orderBy);
-  return args;
-}
 
 /**
  * Tokenizes a command-line string into an array of tokens, handling quoted strings.
@@ -185,32 +70,18 @@ export function tokenize(line) {
  * @param {string[]} tokens
  * @returns {boolean}
  */
-function isStrictFlags(tokens) {
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
-    if (t.startsWith("-")) return true;
-    if (t.includes("=")) return true;
-  }
-  for (let i = 0; i < tokens.length; i++) {
-    const lc = tokens[i].toLowerCase();
-    if (lc === "buy" || lc === "sell" || lc === "w2buy" || lc === "w2sell") {
-      if (i + 1 < tokens.length && tokens[i + 1].startsWith("-")) return true;
-    }
-  }
-  return false;
-}
 
 /**
  * Attempts to parse natural-language tokens into structured search args.
  *
  * Supported patterns (applied case-insensitively):
- *   Mode:   where to (buy|sell), w2(buy|sell), buying, selling
+ *   Mode:   where to (buy|sell), w2(buy|sell), buying, selling, buy, sell
  *   System: near|in|around|at <system name>
  *   Pad:    small pad, medium pad, large pad, pad [s|m|l]
  *   Range:  within|max distance <N> ly
  *   Sort:   sort by (price|supply|demand|distance|update)
  *   Min:    min (supply|demand) <N>
- *   Age:    max age <N> hours
+ *   Age:    max age <N>
  *   Planets: include planets, surface stations, planetary
  *   Carriers: fleet carriers, include carriers
  *   Price:  price (above|below|better than)? <N>
@@ -218,16 +89,22 @@ function isStrictFlags(tokens) {
  * @param {string[]} tokens
  * @returns {Object} args object matching searchCommodity param shape
  */
-function parseNaturalLanguage(tokens) {
+export function parseNaturalLanguage(tokens) {
   const sentence = tokens.join(" ").trim();
   const args = { mode: "where to buy", padSize: "L" };
 
+  // Shared stop pattern for multi-word value capture regexes.
+  // Any NL keyword that could follow a captured value.
+  const NL_KEYWORDS =
+    "max|sort|min|include|fleet|price|within|pad|with|where|w2|w2b|w2s|buying|selling|buy|sell|surface|large|medium|small|planets|planetary|stations|carriers|age|hours|ly|ls|use|allow|fc|pagesize|page|results|per|show|go";
+  const NL_STOP = `(?:\\s+(?:${NL_KEYWORDS})\\b|$)`;
+
   // Mode
-  const modeRe = /\b(where to (buy|sell)|w2(buy|sell|b|s)|buying|selling)\b/i;
+  const modeRe = /\b(where to (buy|sell)|w2(buy|sell|b|s)|buying|selling|buy|sell)\b/i;
   const modeMatch = sentence.match(modeRe);
   if (modeMatch) {
     const matched = modeMatch[1].toLowerCase();
-    if (matched === "where to sell" || matched === "w2sell" || matched === "w2s" || matched === "selling") {
+    if (matched === "where to sell" || matched === "w2sell" || matched === "w2s" || matched === "selling" || matched === "sell") {
       args.mode = "where to sell";
     }
   }
@@ -243,7 +120,7 @@ function parseNaturalLanguage(tokens) {
   }
 
   // System — "near X", "in system X", "around X", "at X"
-  const systemRe = /\b(?:near|in\s+system|around|at)\s+(.+?)(?:\s+(?:max|sort|min|include|fleet|price|within|pad|with|where|w2|w2b|w2s|buying|selling|buy|sell|surface|large|medium|small|planets|planetary|stations|carriers|age|hours|ly|ls|use|allow|fc|pagesize|page|results|per|show|go)\b|$)/i;
+  const systemRe = new RegExp(`\\b(?:near|in\\s+system|around|at)\\s+(.+?)${NL_STOP}`, "i");
   const systemMatch = sentence.match(systemRe);
   if (systemMatch) {
     args.system = systemMatch[1].trim();
@@ -299,6 +176,39 @@ function parseNaturalLanguage(tokens) {
     args.fleetCarriers = "yes";
   }
 
+  // Stronghold carriers
+  const strongholdRe = /\b(?:stronghold\s+carriers?|only\s+pledged)\b/i;
+  if (strongholdRe.test(sentence)) {
+    args.strongholdCarriers = "yes";
+  }
+
+  // Power filter
+  const powerRe = new RegExp(`\\bpower\\s+(.+?)${NL_STOP}`, "i");
+  const powerMatch = sentence.match(powerRe);
+  if (powerMatch) {
+    args.power = powerMatch[1].trim();
+  }
+
+  // Powerplay state filter
+  const stateRe = new RegExp(`\\bpowerplay\\s+state\\s+(.+?)${NL_STOP}`, "i");
+  const stateMatch = sentence.match(stateRe);
+  if (stateMatch) {
+    // Split by comma or "and" but only if followed by a known powerplay state
+    const stateText = stateMatch[1];
+    const rawStates = stateText
+      .split(/,|\s+and\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    args.powerplayState = rawStates;
+  }
+
+  // Minor faction filter
+  const factionRe = new RegExp(`\\bfaction\\s+(.+?)${NL_STOP}`, "i");
+  const factionMatch = sentence.match(factionRe);
+  if (factionMatch) {
+    args.minorFaction = factionMatch[1].trim();
+  }
+
   // Price condition
   const priceRe = /\bprice\s+(?:above|below|better\s+than)?\s*(\d+)\b/i;
   const priceMatch = sentence.match(priceRe);
@@ -307,7 +217,8 @@ function parseNaturalLanguage(tokens) {
   }
 
   // Page size (resultsPerPage)
-  const pageSizeRe = /\b(?:page\s*size|pagesize|per\s*page|\d+\s*results?\s*per\s*page|show\s+(\d+)\s*results?)\s*(\d+)?\b|\b(\d+)\s*(?:results?\s*per\s*page|per\s*page)\b/i;
+  const pageSizeRe =
+    /\b(?:page\s*size|pagesize|per\s*page|\d+\s*results?\s*per\s*page|show\s+(\d+)\s*results?)\s*(\d+)?\b|\b(\d+)\s*(?:results?\s*per\s*page|per\s*page)\b/i;
   const psMatch = sentence.match(pageSizeRe);
   if (psMatch) {
     const n = parseInt(psMatch[1] || psMatch[2] || psMatch[3], 10);
@@ -337,15 +248,20 @@ function parseNaturalLanguage(tokens) {
     .replace(ageRe, "")
     .replace(surfRe, "")
     .replace(fcRe, "")
+    .replace(strongholdRe, "")
+    .replace(powerRe, "")
+    .replace(stateRe, "")
+    .replace(factionRe, "")
     .replace(priceRe, "")
     .replace(pageSizeRe, "")
     .replace(pageRe, "")
-    .replace(/\b(max|age|hours|price|supply|demand|distance|ly|ls|pad|sort|by|include|planets|surface|stations|planetary|fleet|carriers|within|min|w2b|w2s|page|pagesize|results?|per|show|go)\b/gi, "")
+    .replace(new RegExp(`\\b(${NL_KEYWORDS})\\b`, "gi"), "")
     .trim();
 
   if (remainder) {
     const fuzzy = matchCommodity(remainder);
     if (fuzzy) {
+      console.log("Unrecognized commodity. Did you mean " + fuzzy.match + "?\n");
       args.commodity = fuzzy.match;
     } else {
       args.commodity = remainder;
@@ -374,31 +290,23 @@ export function routeCommand(lineOrTokens) {
     return { command: "other", tokens };
   }
   const first = tokens[0].toLowerCase();
-  if (first !== "search") {
-    // Standalone pagination commands
-    if (["next", "nextpage", "prev", "previous", "back", "first", "last"].includes(first)) {
-      const action = first === "nextpage" ? "next" : first === "previous" || first === "back" ? "prev" : first;
-      return { command: "paginate", action };
-    }
-    if ((first === "page" || first === "pagesize" || first === "results") && tokens.length > 1) {
-      const val = parseInt(tokens[1], 10);
-      if (!isNaN(val) && val > 0) return { command: "paginate", action: first === "results" ? "pagesize" : first, value: val };
-    }
-    return { command: "other", tokens };
-  }
-  const remaining = tokens.slice(1);
-  return routeSearch(remaining);
-}
 
-/**
- * Routes the tokens after the "search" keyword.
- *
- * @param {string[]} tokens - Tokens following "search".
- * @returns {{ command: "search", args: Object }}
- */
-function routeSearch(tokens) {
-  if (isStrictFlags(tokens)) {
-    return { command: "search", args: parseArgs(tokens) };
+  // Standalone pagination commands
+  if (["next", "nextpage", "prev", "previous", "back", "first", "last"].includes(first)) {
+    const action = first === "nextpage" ? "next" : first === "previous" || first === "back" ? "prev" : first;
+    return { command: "paginate", action };
   }
-  return { command: "search", args: parseNaturalLanguage(tokens) };
+  if ((first === "page" || first === "pagesize" || first === "results") && tokens.length > 1) {
+    const val = parseInt(tokens[1], 10);
+    if (!isNaN(val) && val > 0) return { command: "paginate", action: first === "results" ? "pagesize" : first, value: val };
+  }
+
+  // The only lookup verb is "search". Strip it and parse the rest as natural language.
+  if (first === "search") {
+    const remaining = tokens.slice(1);
+    return { command: "search", args: parseNaturalLanguage(remaining) };
+  }
+
+  // Unknown command
+  return { command: "other", tokens };
 }

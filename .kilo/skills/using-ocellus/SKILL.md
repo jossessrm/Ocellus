@@ -43,24 +43,9 @@ Before searching, ask the user:
 
 The CLI uses a **Sub-Command Router** that automatically detects the input style after the `search` keyword. Both modes work in single-command (`npm run cli -- ...`) and REPL contexts.
 
-### Strict Flag Mode
-
-When the router detects tokens starting with `-` or `=`, it delegates to the existing flag parser:
-
-```
-search [BUY|SELL|w2buy|w2sell] -c <commodity> -s <system> [flags...] [key=value...]
-```
-
-Examples:
-```
-search buy -c Tritium -s Manhari -pad L -d 50 -o price
-search sell -c Gold -s Sol -fc yes -q anarchy
-search w2buy -c Painite -s Sol -supply 50000 -results 100
-```
-
 ### Natural Language Mode
 
-When no strict flag signals are detected, the sentence is parsed via regex patterns:
+The CLI uses natural language parsing for all queries:
 
 ```
 search <natural language sentence>
@@ -88,7 +73,7 @@ Examples:
 search where to buy tritium near manhari
 search w2b gold near sol large pad within 50 ly
 search where to sell painite near sol fleet carriers sort by price
-search buy tritium near shinrarta use fc
+search buy tritium near shinrarta dezhra use fc
 search where to buy tritium near manhari within 100 ly min supply 50000 sort by price
 search where to sell painite near sol pagesize 50
 search w2b tritium near manhari page 2
@@ -104,11 +89,6 @@ last         Last page
 page 5       Jump to page 5
 pagesize 25  Change to 25 results per page (resets to page 1)
 ```
-
-### Detecting Flag vs Natural Language
-
-The `isStrictFlags()` function checks: any token starts with `-` or contains `=` → strict flags.  
-Otherwise → natural language. This means `search tritium near sol` is NL (no `-c` needed).
 
 ---
 
